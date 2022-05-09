@@ -3,13 +3,14 @@
 This repo hosts the code and csv files for Liz Murphy's R Shiny application final project for BF591-R.
 
 This app explores data from GSE64810, accessible here: https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE64810.
-All data files to run the app are available in this repository, in the folder final_project.
+All data files to run the app are available in this repository, in the data folder within final_project.
   The data folder includes:
-    *sample_info.csv* processed from the SOFT files.
+  
+    *sample_info.csv* processed from the SOFT files available on the GEO.
     
     *GSE64810_mlhd_DESeq2_norm_counts_adjust.tsv* normalized count matrix downloaded from the GEO.
     
-    *GSE64810_mlhd_DESeq2_diffexp_DESeq2_outlier_trimmed_adjust.tsv* DESeq2 differential expression analysis results.
+    *GSE64810_mlhd_DESeq2_diffexp_DESeq2_outlier_trimmed_adjust.tsv* DESeq2 differential expression analysis results downloded from  the GEO
     
     *fgsea_results.csv* GSEA results as generated from the DESeq2 csv in processing.R
     
