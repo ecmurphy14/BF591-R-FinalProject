@@ -17,7 +17,7 @@ options(shiny.maxRequestSize=30*1024^2)
 ui <- fluidPage( theme = shinythemes::shinytheme('flatly'),
     titlePanel(h1('BF591 Final Project', h5(HTML("<p>This tool explores RNA-Seq data of post-mortem human brain tissue from both healthy individuals and those with with Huntington's Disease. <br>
                                                  The normalized counts matrix and DESeq2 results are accessible using the GEO Acession number <a href='https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE64810'>GSE64810</a>. <br>
-                                                 See the R script 'processing.R' from this app's repository to see how the sample metadata was extracted from the GSE SOFT files, as well as how GSEA results were generated.</p>")))),
+                                                 See the R script 'processing.R' from this app's <a href='https://github.com/ecmurphy14/BF591-R-FinalProject'>repository</a> to see how the sample metadata was extracted from the GSE SOFT files, as well as how GSEA results were generated.</p>")))),
     tabsetPanel(
         tabPanel('Samples',
                  sidebarLayout(
@@ -63,7 +63,7 @@ ui <- fluidPage( theme = shinythemes::shinytheme('flatly'),
                              ),
                              tabPanel('PCA',
                                       sidebarLayout(
-                                          sidebarPanel(p('After changing they radio buttons, please click submit to update the PCA plot.'),
+                                          sidebarPanel(p('After changing the radio buttons, please click submit to update the PCA plot.'),
                                                        radioButtons('xPCA', 'Choose a PC for the x-axis', choices = c('PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7', 'PC8', 'PC9', 'PC10'), selected = 'PC1'),
                                                        radioButtons('yPCA', 'Choose a PC for the y-axis', choices =c('PC1', 'PC2', 'PC3', 'PC4', 'PC5', 'PC6', 'PC7', 'PC8', 'PC9', 'PC10'), selected = 'PC2'),
                                                        submitButton('Submit', width = '100%')
@@ -169,23 +169,27 @@ server <- function(input, output, session) {
     }
     
     
-    #' plot_continuous
+    #' plot_continuous1
     #' @param df Data frame loaded by load_sample_data()
     #'
-    #' @return Histogram of age_at_death variable included in the sample information
-    #' @details A function to generate plots of continuous variables from sample_info.csv
-    
+    #' @return Beeswarm plot of age_at_death variable included in the sample information
+
     plot_continuous1 <- function(df){
         plot <- ggplot(df, aes(x=diagnosis, y=age_at_death)) +
             geom_beeswarm(cex=3) +
             labs(title='Beeswarm Plot: Age at Death vs. Diagnosis', x='Diagnosis', y='Age at Death')
         return(plot)
     }
+    
+    #' plot_continuous2
+    #' @param df Data frame loaded by load_sample_data()
+    #'
+    #' @return Histogram plot of age_at_onset variable included in the sample information
         
     plot_continuous2 <- function(df){
         plot <- ggplot(df, aes(x=age_at_onset)) + 
             geom_histogram(binwidth = 4) +
-            labs(title="Histogram of Age at Onset of Huntington's Disesase Samples", x='Age at Onset', y='Counts')
+            labs(title="Histogram of Age at Onset of Huntington's Disease Samples", x='Age at Onset', y='Counts')
         return(plot)
     }
     
@@ -285,7 +289,7 @@ server <- function(input, output, session) {
     #' plot_zeros_vs_median
     #' @param data Data frame loaded by load_counts_data()
     #' @param scale_y_axis whether or not to use a log scale on the y axis
-    #' @param slider1 slider input from slider2, number of zeros threshold
+    #' @param slider2 slider input from slider2, number of zeros threshold
     #' 
     #'
     #' @return A plot of zeros vs median counts for each gene, colored by slider input
@@ -299,11 +303,18 @@ server <- function(input, output, session) {
                 geom_point(aes(x=rank_median, y=zeros, color=zeros<slider2), alpha =0.3)+
                 scale_y_log10()+
                 scale_color_manual(labels=c(paste('>', slider2, ' '), paste('<', slider2, ' ')), values = c('gray', 'black'))+
-                labs(title='Number of Zeros vs. Median Expression', color='Number of Zeros', x='Rank of Median Exrpression')+
+                labs(title='Number of Zeros vs. Median Expression', color='Number of Zeros', x='Rank of Median Expression')+
                 geom_smooth(aes(x=rank_median, y=zeros))
         }
         return(plot)
     }
+    
+    #' counts_heatmap
+    #' @param data Data frame loaded by load_counts_data()
+    #' @param slider1 slider input from slider1, variance percentile threshold
+    #' @param slider2 slider input from slider2, number of zeros threshold
+    #'
+    #' @return A heatmap of filtered counts
     
     counts_heatmap <- function(data, slider1, slider2){
         data_filtered <- dplyr::mutate(data, variance=apply(data[-1], 1, var)) %>%
@@ -317,6 +328,16 @@ server <- function(input, output, session) {
         legend(x = "right", legend = c("low", "medium", "high"),cex = 0.9, fill = pal)
         return()
     }
+    
+    #' counts_heatmap
+    #' @param data tibble loaded by load_counts_data()
+    #' @param metadata dataframe loaded by load_sample_data(), to color PCA plot by diagnosis
+    #' @param slider1 slider input from slider1, variance percentile threshold
+    #' @param slider2 slider input from slider2, number of zeros threshold
+    #' @param xPCA radio button input from xPCA, user choice of PC to plot on x axis
+    #' @param yPCA radio button input from yPCA, user choice of PC to plot on y axis
+    #'
+    #' @return A scatter plot of chosen PCs colored by sample diagnosis
     
     counts_pca <- function(data, metadata, slider1, slider2, xPCA, yPCA) {
         data_filtered <- dplyr::mutate(data, variance=apply(data[-1], 1, var)) %>%
@@ -394,22 +415,36 @@ server <- function(input, output, session) {
         return(data)
     })
     
+    #' volcano_plot
+    #' @param dataf Data frame loaded by load_deseq_data()
+    #' @param x_name radio button input to select variable to plot on x axis
+    #' @param y_name radio button input to select variable to plot on y axis
+    #' @param slider slider input from slider3, adjusted p-value threshold
+    #' @param color1 base color input for volcano plot
+    #' @param color2 highlight color input for volcano plot
+    #'
+    #' @return A volcano plot of DESeq2 reults, colored by adjusted p-value
     
     volcano_plot <- function(dataf, x_name, y_name, slider, color1, color2) {
-        #volcano_data <- dplyr::mutate(dataf, neglog10 = -log(y_name, base=10)) 
         dataf['neglog10'] <- -log(dataf[y_name], base=10)
         dataf['x_name'] <- dataf[x_name]
         
         plot <-  dataf %>%
-            ggplot(aes(x= x_name, y=neglog10, color = padj<(1 * 10^slider)))+
-            geom_point()+
-            scale_color_manual(values=c(color1, color2))+
-            labs(x= x_name, y= paste('-log10(', y_name, ')', sep = '' ))+
-            theme_bw()+
+            ggplot(aes(x= x_name, y=neglog10)) +
+            geom_point(aes(color=padj < 1 * 10 ^ (as.numeric(slider)))) +
+            scale_color_manual(name = paste('padj < 1 * 10 ^', slider, sep=' '), values=c(color1, color2)) +
+            labs(x= x_name, y= paste('-log10(', y_name, ')', sep = '' )) + 
+            theme_bw() +
             theme(legend.position="bottom")
         
         return(plot)
     }
+    
+    #' draw_table_deseq
+    #' @param dataf Data frame loaded by load_deseq_data()
+    #' @param slider slider input from slider3, adjusted p-value threshold
+    #'
+    #' @return A data frame of deseq2 results, filtered by slider input
     
     draw_table_deseq <- function(dataf, slider) {
         dataf <- dataf %>%
@@ -417,6 +452,10 @@ server <- function(input, output, session) {
             dplyr::mutate(padj = formatC(padj), pvalue = formatC(pvalue))
         return(dataf)
     }
+    
+    #' Outputs for DE
+    #' 
+    #' 
     
     output$volcano_deseq <- renderPlot({
         req(input$deseq_file)
